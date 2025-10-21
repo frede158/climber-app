@@ -150,8 +150,31 @@
 
             const getTotalStats = () => {
                 const totalMinutes = sessions.reduce((acc, s) => {
-                    const [hours, mins] = s.duration.split(/[: ]/).filter(x => x);
-                    return acc + (parseInt(hours) || 0) * 60 + (parseInt(mins) || 0);
+                    // Parse Danish format like "1 time 30 min" or "2 timer 15 min"
+                    const durationStr = s.duration.toLowerCase();
+                    let totalSessionMinutes = 0;
+                    
+                    // Extract hours from "X time" or "X timer"
+                    const timeMatch = durationStr.match(/(\d+)\s*(?:time|timer)/);
+                    if (timeMatch) {
+                        totalSessionMinutes += parseInt(timeMatch[1]) * 60;
+                    }
+                    
+                    // Extract minutes from "X min"
+                    const minMatch = durationStr.match(/(\d+)\s*min/);
+                    if (minMatch) {
+                        totalSessionMinutes += parseInt(minMatch[1]);
+                    }
+                    
+                    // Fallback: try to parse as "H:M" format
+                    if (totalSessionMinutes === 0) {
+                        const colonMatch = s.duration.match(/(\d+):(\d+)/);
+                        if (colonMatch) {
+                            totalSessionMinutes = parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2]);
+                        }
+                    }
+                    
+                    return acc + totalSessionMinutes;
                 }, 0);
 
                 const colorCounts = {};
@@ -331,9 +354,12 @@
                                             type="text"
                                             value={currentSession.duration}
                                             onChange={(e) => setCurrentSession({...currentSession, duration: e.target.value})}
-                                            placeholder="f.eks. 1 time 50 min"
+                                            placeholder="f.eks. 1 time 30 min eller 2 timer 15 min"
                                             className="w-full bg-slate-700 rounded-lg p-3 text-white border border-slate-600 focus:border-blue-500 focus:outline-none"
                                         />
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Format: "X time Y min" eller "X timer Y min" eller "X:Y"
+                                        </p>
                                     </div>
 
                                     <div>
